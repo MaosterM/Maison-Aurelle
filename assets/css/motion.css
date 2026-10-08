@@ -1,0 +1,84 @@
+/* slash page transition: three skewed layers, champagne edge leads, charcoal covers */
+.sx{position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden}
+.sx i{position:absolute;inset:0 -30%;display:grid;place-items:center;transform:translateX(-125%) skewX(var(--slant));transition:transform var(--dur-wipe) var(--ease-wipe) var(--d,0ms)}
+.sx i:nth-child(1){background:var(--champagne-500);--d:0ms}
+.sx i:nth-child(2){background:var(--taupe-400);--d:var(--stagger)}
+.sx i:nth-child(3){background:var(--charcoal-900);--d:calc(var(--stagger)*2)}
+.sx b{font:300 3rem var(--font-serif);color:var(--champagne-500);transform:skewX(calc(var(--slant)*-1));animation:pulse .9s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.4}}
+.sx.is-cover i{transform:translateX(0) skewX(var(--slant))}
+.sx.is-out i{transform:translateX(125%) skewX(var(--slant))}
+.sx.is-out i:nth-child(1){--d:calc(var(--stagger)*2)}
+.sx.is-out i:nth-child(3){--d:0ms}
+.sx.reset i{transition:none}
+.sx-pending .sx i{transform:translateX(0) skewX(var(--slant));transition:none}
+
+/* kinetic type: chars rise from a mask with a small rotation */
+[data-split] .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.14em}
+[data-split] .c{display:inline-block;transform:translateY(110%) rotate(8deg);transform-origin:left bottom;transition:transform var(--dur-reveal) var(--ease-pop);transition-delay:calc(var(--i)*18ms + var(--base,0ms))}
+[data-split].in .c{transform:none}
+
+/* cut-in reveal: slanted clip-path sweep */
+.reveal{clip-path:polygon(0 0,0 0,-12% 100%,-12% 100%);transition:clip-path var(--dur-reveal) var(--ease-snap) var(--base,0ms)}
+.reveal.in{clip-path:polygon(0 0,112% 0,100% 100%,-12% 100%)}
+
+@media (prefers-reduced-motion:reduce){
+  .sx,.sx-pending .sx{display:none}
+  *,*::before,*::after{animation:none!important;transition-duration:.2s!important;transition-delay:0ms!important}
+  [data-split] .c{transform:none}
+  .reveal{clip-path:none}
+}
+
+/* header actions + fullscreen menu (hidden without JS; inline nav is the fallback) */
+.hdr-actions{display:flex;gap:.8rem;align-items:center}
+.btn--sm{padding:.55rem 1.2rem}
+.menu-btn,.menu-close{background:none;border:1px solid var(--champagne-700);color:var(--ivory-50);padding:.55rem 1.1rem;font:600 .75rem var(--font-sans);letter-spacing:.18em;text-transform:uppercase;cursor:pointer}
+.menu-btn{display:none}
+html.js .menu-btn{display:inline-block}
+html.js .nav{display:none}
+.menu{display:none;position:fixed;inset:0;z-index:200;grid-template-columns:1.3fr 1fr;gap:2rem;align-content:center;align-items:center;padding:6rem clamp(1rem,6vw,5rem) 3rem;background:var(--ink-950);clip-path:polygon(0 0,0 0,-12% 100%,-12% 100%);visibility:hidden;transition:clip-path var(--dur-wipe) var(--ease-wipe),visibility 0s linear var(--dur-wipe)}
+html.js .menu{display:grid}
+.menu.is-open{clip-path:polygon(0 0,112% 0,100% 100%,-12% 100%);visibility:visible;transition-delay:0s}
+html.menu-open{overflow:hidden}
+.menu-close{position:absolute;top:calc(1rem + env(safe-area-inset-top,0px));right:clamp(1rem,4vw,3rem)}
+.menu-list{list-style:none;padding:0;display:grid;gap:.2rem}
+.menu-list a{position:relative;isolation:isolate;display:flex;align-items:baseline;gap:1.2rem;padding:.3rem 1.2rem;font:300 clamp(2.4rem,7vw,5.5rem)/1.1 var(--font-serif);transition:transform var(--dur-ui) var(--ease-pop),color var(--dur-micro),opacity var(--dur-ui)}
+.menu-list a::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--champagne-500);transform:skewX(var(--slant)) scaleX(0);transform-origin:left;transition:transform var(--dur-ui) var(--ease-pop)}
+.menu-list .num{font:600 .8rem var(--font-sans);letter-spacing:.18em;color:var(--champagne-500)}
+.menu-list:hover a:not(:hover){opacity:.35}
+.menu-list a:hover,.menu-list a:focus-visible,.menu-list a[aria-current]{color:var(--ink-950);transform:rotate(-2deg) translateX(10px)}
+.menu-list a:hover .num,.menu-list a:focus-visible .num,.menu-list a[aria-current] .num{color:inherit}
+.menu-list a:hover::before,.menu-list a:focus-visible::before,.menu-list a[aria-current]::before{transform:skewX(var(--slant)) scaleX(1)}
+.menu.is-open .menu-list a{animation:rise var(--dur-reveal) var(--ease-pop) backwards;animation-delay:calc(var(--n)*var(--stagger) + 250ms)}
+@keyframes rise{from{transform:translateY(60%) rotate(4deg);opacity:0}}
+.menu-preview{font:italic 300 clamp(1.6rem,3vw,2.8rem)/1.2 var(--font-serif);color:var(--champagne-500);max-width:14ch}
+@media (max-width:800px){.menu{grid-template-columns:1fr}.menu-preview{display:none}}
+
+/* flex carousel: cards share a row, the active one grows */
+.rail{display:flex;gap:.75rem;height:min(34rem,75vh);margin-top:3rem}
+.rail a{position:relative;overflow:hidden;flex:1;min-width:0;display:flex;align-items:flex-end;padding:1.5rem;background:var(--charcoal-700);transition:flex var(--dur-reveal) var(--ease-snap),min-height var(--dur-reveal) var(--ease-snap)}
+.rail a::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(11,11,12,.92))}
+.rail img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform var(--dur-reveal) var(--ease-snap)}
+.rail .v,.rail .more{position:relative;z-index:1}
+.rail .v{writing-mode:vertical-rl;transform:rotate(180deg);font:300 1.6rem var(--font-serif);white-space:nowrap;transition:opacity var(--dur-ui)}
+.rail .more{position:absolute;left:1.5rem;right:1.5rem;bottom:1.5rem;opacity:0;transform:translateY(16px);transition:opacity var(--dur-ui) var(--ease-snap),transform var(--dur-ui) var(--ease-snap)}
+.rail .more h3{font-size:clamp(1.8rem,3vw,2.8rem)}
+.rail .more p{margin-top:.4rem;color:var(--taupe-300)}
+.rail a.is-open{flex:5}
+.rail a.is-open .more{opacity:1;transform:none;transition-delay:.15s}
+.rail a.is-open .v{opacity:0}
+@media (hover:hover) and (min-width:761px){
+  .rail a:hover,.rail a:focus-visible{flex:5}
+  .rail a:hover img{transform:scale(1.05)}
+  .rail a:hover .more,.rail a:focus-visible .more{opacity:1;transform:none;transition-delay:.15s}
+  .rail a:hover .v,.rail a:focus-visible .v{opacity:0}
+  .rail:has(a:hover,a:focus-visible) a.is-open:not(:hover):not(:focus-visible){flex:1}
+  .rail:has(a:hover,a:focus-visible) a.is-open:not(:hover):not(:focus-visible) .more{opacity:0;transform:translateY(16px)}
+  .rail:has(a:hover,a:focus-visible) a.is-open:not(:hover):not(:focus-visible) .v{opacity:1}
+}
+@media (max-width:760px){
+  .rail{flex-direction:column;height:auto}
+  .rail a{flex:none;min-height:5rem;align-items:center}
+  .rail a.is-open{min-height:22rem;align-items:flex-end}
+  .rail .v{writing-mode:horizontal-tb;transform:none}
+}
