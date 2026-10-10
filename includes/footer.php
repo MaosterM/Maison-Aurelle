@@ -5,5 +5,6 @@
   <button type="button" id="motion-toggle" aria-live="polite">Motion: Signature</button>
 </footer>
 <script type="module" src="assets/js/main.js"></script>
+<?php if (!empty($js)): ?><script type="module" src="<?= e($js) ?>"></script><?php endif; ?>
 </body>
 </html>
