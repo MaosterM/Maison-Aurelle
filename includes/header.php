@@ -23,7 +23,7 @@ $nav = [
 <link rel="stylesheet" href="assets/css/tokens.css">
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/motion.css">
-<?php if (!empty($css)): ?><link rel="stylesheet" href="<?= e($css) ?>"><?php endif; ?>
+<?php foreach ((array)($css ?? []) as $c): ?><link rel="stylesheet" href="<?= e($c) ?>"><?php endforeach; ?>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>

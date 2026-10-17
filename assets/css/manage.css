@@ -1,0 +1,16 @@
+.keycard{padding:2rem;background:linear-gradient(135deg,var(--charcoal-700),var(--charcoal-900));border:1px solid var(--champagne-700);transform-origin:left center;animation:flipin var(--dur-reveal) var(--ease-pop) both}
+@keyframes flipin{from{transform:perspective(1200px) rotateY(-80deg) rotateZ(-3deg);opacity:0}}
+.keycard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.keycard .ref{font-size:clamp(1.8rem,4vw,3rem);animation:none;margin-top:0}
+.stamp{display:inline-block;padding:.3rem 1rem;border:2px solid var(--champagne-500);color:var(--champagne-500);font:600 .85rem var(--font-sans);letter-spacing:.2em;text-transform:uppercase;transform:rotate(-6deg);animation:stamp var(--dur-reveal) var(--ease-pop) .5s both}
+.stamp.off{border-color:var(--taupe-400);color:var(--taupe-400)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1rem;margin:1.5rem 0}
+.kv dt{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--taupe-300)}
+.kv dd{margin:0;font-size:1.05rem}
+.lines{list-style:none;padding:0;display:grid;gap:.4rem;margin:1rem 0 0}
+.lines li{display:flex;justify-content:space-between;gap:1rem}
+.lines .tot{padding-top:.6rem;border-top:1px solid var(--charcoal-700);color:var(--champagne-500);font-size:1.2rem}
+.panel{margin-top:2rem;padding:1.5rem;background:var(--charcoal-800)}
+.panel h2{font-size:1.8rem;margin-bottom:.5rem;max-width:none}
+.panel .btn{margin-top:1rem}
+.linkbtn{background:none;border:0;color:var(--champagne-300);text-decoration:underline;cursor:pointer;font:inherit}

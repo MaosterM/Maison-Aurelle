@@ -45,7 +45,11 @@ if ($stay && !$room) { $stay = []; $_SESSION['booking']['stay'] = []; }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check()) { http_response_code(400); exit('Invalid request. Go back and try again.'); }
     $do = $_POST['do'] ?? '';
-    if ($do === 'room') {
+    if ($do === 'pick') {
+        $id = (int)($_POST['addon'] ?? 0);
+        if ($id > 0) { $w = $_SESSION['wish'] ?? []; $w[] = $id; $_SESSION['wish'] = array_values(array_unique($w)); }
+        header('Location: booking.php?step=' . ($stay ? 2 : 1)); exit;
+    } elseif ($do === 'room') {
         [$s, $e1] = parse_stay($_POST);
         $r = $s ? get_room($db, (int)($_POST['room'] ?? 0)) : null;
         if ($e1) $err = $e1;
@@ -60,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($do === 'addons' && $stay) {
         $_SESSION['booking']['addons'] = array_map('intval', (array)($_POST['addons'] ?? []));
         $_SESSION['booking']['addons_done'] = true;
+        unset($_SESSION['wish']);
         header('Location: booking.php?step=3'); exit;
     } elseif ($do === 'confirm' && $stay && $room) {
         $g = ['first' => trim((string)($_POST['first'] ?? '')), 'last' => trim((string)($_POST['last'] ?? '')),
@@ -111,7 +116,7 @@ include __DIR__ . '/includes/header.php';
   <?php if ($err): ?><p class="alert" role="alert"><?= e($err) ?></p><?php endif; ?>
 
   <?php if ($step === '1'):
-      $in = $_POST ?: ($stay ?: $_GET);
+      $in = ($_POST ?: ($stay ?: $_GET)) + ['check_in' => $today, 'check_out' => $tomorrow, 'adults' => 2];
       [$s, $e2] = parse_stay($in);
       $rooms = $s ? available_rooms($db, $s) : [];
       $vin = e($in['check_in'] ?? $today); $vout = e($in['check_out'] ?? $tomorrow); $vad = (int)($in['adults'] ?? 2); ?>
@@ -132,7 +137,7 @@ include __DIR__ . '/includes/header.php';
         <input type="hidden" name="check_in" value="<?= e($s['check_in']) ?>"><input type="hidden" name="check_out" value="<?= e($s['check_out']) ?>"><input type="hidden" name="adults" value="<?= (int)$s['adults'] ?>">
         <p class="label" style="margin:1.5rem 0 1rem"><?= (int)$s['nights'] ?> night<?= $s['nights'] > 1 ? 's' : '' ?>, <?= count($rooms) ?> room type<?= count($rooms) > 1 ? 's' : '' ?> available</p>
         <?php foreach ($rooms as $r): ?>
-          <label class="opt"><input type="radio" name="room" value="<?= (int)$r['id'] ?>" required<?= (int)($stay['room_id'] ?? 0) === (int)$r['id'] ? ' checked' : '' ?>>
+          <label class="opt"><input type="radio" name="room" value="<?= (int)$r['id'] ?>" required<?= (int)($_GET['room'] ?? $stay['room_id'] ?? 0) === (int)$r['id'] ? ' checked' : '' ?>>
             <div><h3><?= e($r['name']) ?> <?php if ($r['left'] <= 2): ?><span class="badge"><?= (int)$r['left'] ?> left</span><?php endif; ?></h3>
               <p><?= e($r['size_sqm']) ?> m², <?= e($r['bed_config']) ?>, <?= e($r['view']) ?></p>
               <p><span class="price"><?= money($r['base_price']) ?></span> a night, <?= money($r['base_price'] * $s['nights']) ?> for the stay</p></div></label>
@@ -143,7 +148,7 @@ include __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
   <?php elseif ($step === '2'):
-      $selected = $_SESSION['booking']['addons'] ?? [];
+      $selected = array_values(array_unique(array_merge($_SESSION['booking']['addons'] ?? [], $_SESSION['wish'] ?? [])));
       $cats = ['bundle' => 'Set deals', 'dining' => 'Dining', 'spa' => 'Spa', 'experience' => 'Experiences', 'transport' => 'Transport'];
       $all = $db->query("SELECT * FROM addons WHERE is_active = 1 ORDER BY sort_order")->fetchAll();
       $rule = ['per_stay' => 'per stay', 'per_night' => 'per night', 'per_person' => 'per person', 'per_person_per_night' => 'per person, per night'];
