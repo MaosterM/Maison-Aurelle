@@ -1,0 +1,47 @@
+/* hero slider: the next image cuts in along the signature slant, led by a gold edge. --off is the slant's sideways travel. */
+.hero{--off:21svh}
+/* real photos have bright areas: keep the headline side shaded, whatever image is showing */
+.hero::after{background:linear-gradient(90deg,rgba(11,11,12,.74),rgba(11,11,12,.12) 62%),linear-gradient(180deg,rgba(11,11,12,.55),rgba(11,11,12,.1) 40%,var(--ink-950))}
+@media (max-width:760px){.hero::after{background:linear-gradient(180deg,rgba(11,11,12,.6),rgba(11,11,12,.62) 55%,var(--ink-950) 88%)}}
+.hero>.hero-slides{position:absolute;inset:0;z-index:0}
+.hs{position:absolute;inset:0;overflow:hidden;visibility:hidden;background:linear-gradient(160deg,var(--charcoal-700),var(--ink-950) 70%)}
+.hs.is-active,.hs.is-in{visibility:visible}
+.hs img{width:100%;height:100%;object-fit:cover;opacity:.55;transform:scale(1.08);animation:kb 24s var(--ease-liquid) infinite alternate}
+.hero.is-paused .hs img{animation-play-state:paused}
+:root[data-motion=calm] .hs img{animation:none}
+.hs.is-in{z-index:1;animation:hs-cut var(--dur-reveal) var(--ease-wipe) both}
+@keyframes hs-cut{
+  from{clip-path:polygon(0 0,0 0,calc(var(--off) * -1) 100%,calc(var(--off) * -1) 100%)}
+  to{clip-path:polygon(0 0,calc(100% + var(--off)) 0,100% 100%,calc(var(--off) * -1) 100%)}
+}
+.hero>.hero-edge{position:absolute;z-index:1;inset:0 auto 0 0;width:.4rem;background:var(--gold-sheen);visibility:hidden;pointer-events:none}
+.hero>.hero-edge.is-run{visibility:visible;animation:hs-edge var(--dur-reveal) var(--ease-wipe) both}
+@keyframes hs-edge{
+  from{transform:translateX(calc(var(--off) * -.5)) skewX(var(--slant))}
+  to{transform:translateX(calc(100vw + var(--off) * .5)) skewX(var(--slant))}
+}
+
+/* slider controls: only shown once JavaScript can run them */
+.hero-ctl{display:flex;align-items:center;gap:.4rem;justify-self:start}
+@media (max-width:760px){.hero{padding-bottom:19rem}}   /* room for the Concierge button between the controls and the booking bar */
+.hero-ctl[hidden],.hero-ctl [hidden]{display:none}
+.hero-ctl button{position:relative;width:44px;height:44px;background:rgba(11,11,12,.45);border:1px solid var(--champagne-700);color:var(--ivory-50);font:400 1rem var(--font-sans);cursor:pointer;transition:background var(--dur-micro),color var(--dur-micro)}
+.hero-ctl button:hover,.hero-ctl button:focus-visible{background:var(--champagne-500);color:var(--ink-950)}
+.hero-pause::before,.hero-pause::after{content:"";position:absolute;top:14px;bottom:14px;width:3px;background:currentColor}
+.hero-pause::before{left:15px}
+.hero-pause::after{right:15px}
+.hero-pause[aria-pressed=true]::after{display:none}
+.hero-pause[aria-pressed=true]::before{left:16px;top:13px;bottom:13px;width:0;background:none;border-left:13px solid currentColor;border-top:8px solid transparent;border-bottom:8px solid transparent}
+.hero-count{min-width:4.2rem;text-align:center;font-size:.78rem;letter-spacing:.14em;color:var(--taupe-300);font-variant-numeric:tabular-nums}
+
+/* welcome: layered images move at different speeds */
+.welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(2rem,6vw,6rem);align-items:center;overflow:hidden}
+.layers{position:relative;aspect-ratio:1}
+.layers>*{position:absolute;display:block}
+.l-back{top:0;right:0;width:68%;aspect-ratio:4/5;object-fit:cover}
+.l-front{left:0;bottom:4%;width:48%;aspect-ratio:4/5;object-fit:cover;border:.5rem solid var(--ivory-50)}
+.l-slash{left:38%;top:6%;width:.35rem;height:70%;background:var(--champagne-500);transform-origin:center}
+@media (max-width:900px){
+  .welcome{grid-template-columns:minmax(0,1fr)}
+  .layers{max-width:30rem;width:100%;margin:0 auto}
+}

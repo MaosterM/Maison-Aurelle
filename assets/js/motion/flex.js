@@ -2,7 +2,7 @@
 const rail = document.querySelector('.rail');
 if (rail) {
   const cards = [...rail.children];
-  const touch = matchMedia('(hover: none)');
+  const touch = matchMedia('(hover: none), (max-width: 760px)');   // same rule as the Rooms stack; CSS has no hover expand here
   rail.addEventListener('click', e => {
     const a = e.target.closest('a');
     if (!a || !touch.matches || a.classList.contains('is-open')) return;

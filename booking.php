@@ -4,22 +4,26 @@ require __DIR__ . '/includes/helpers.php';
 require __DIR__ . '/includes/db.php';
 require __DIR__ . '/includes/session.php';
 require __DIR__ . '/includes/booking-engine.php';
+require __DIR__ . '/includes/reservation.php';
+require __DIR__ . '/includes/mailer.php';
 
-function money2($n): string { return (CURRENCY === 'USD' ? '$' : CURRENCY . ' ') . number_format((float)$n, 2); }
 function summary(array $room, array $stay, array $q): void { ?>
   <aside class="sum" id="sum" aria-live="polite" data-room="<?= (int)$room['id'] ?>" data-in="<?= e($stay['check_in']) ?>" data-out="<?= e($stay['check_out']) ?>"
          data-adults="<?= (int)$stay['adults'] ?>" data-nights="<?= (int)$stay['nights'] ?>" data-room-total="<?= $q['room_total'] ?>"
          data-svc="<?= SERVICE_RATE ?>" data-tax="<?= TAX_RATE ?>" data-sym="<?= e(CURRENCY === 'USD' ? '$' : CURRENCY . ' ') ?>">
     <span class="label">Your stay</span>
-    <h3><?= e($room['name']) ?></h3>
-    <p><?= e($stay['check_in']) ?> to <?= e($stay['check_out']) ?>, <?= (int)$stay['adults'] ?> adult<?= $stay['adults'] > 1 ? 's' : '' ?></p>
-    <ul id="sum-body">
-      <li><span>Room, <?= (int)$q['nights'] ?> night<?= $q['nights'] > 1 ? 's' : '' ?></span><b><?= money2($q['room_total']) ?></b></li>
-      <?php foreach ($q['addons'] as $a): ?><li><span><?= e($a['name']) ?></span><b><?= money2($a['amount']) ?></b></li><?php endforeach; ?>
-      <li><span>Service charge</span><b><?= money2($q['service']) ?></b></li>
-      <li><span>Tax</span><b><?= money2($q['tax']) ?></b></li>
-      <li class="tot"><span>Total</span><b><?= money2($q['total']) ?></b></li>
-    </ul>
+    <h2><?= e($room['name']) ?></h2>
+    <p><?= e(nice_date($stay['check_in'], 'j M')) ?> to <?= e(nice_date($stay['check_out'], 'j M Y')) ?>, <?= (int)$stay['adults'] ?> adult<?= $stay['adults'] > 1 ? 's' : '' ?></p>
+    <details class="sum-d" open>
+      <summary>Price details</summary>
+      <ul id="sum-body">
+        <li><span>Room, <?= (int)$q['nights'] ?> night<?= $q['nights'] > 1 ? 's' : '' ?></span><b><?= money2($q['room_total']) ?></b></li>
+        <?php foreach ($q['addons'] as $a): ?><li><span><?= e($a['name']) ?></span><b><?= money2($a['amount']) ?></b></li><?php endforeach; ?>
+        <li><span>Service charge</span><b><?= money2($q['service']) ?></b></li>
+        <li><span>Tax</span><b><?= money2($q['tax']) ?></b></li>
+      </ul>
+    </details>
+    <p class="tot"><span>Total</span><b id="sum-total"><?= money2($q['total']) ?></b></p>
   </aside>
 <?php }
 
@@ -28,7 +32,7 @@ try { $db = db(); $db->query('SELECT 1'); }
 catch (Throwable $x) { http_response_code(503); exit('Booking is temporarily unavailable.'); }
 
 $err = '';
-$step = (string)($_GET['step'] ?? '1');
+$step = field($_GET, 'step') ?: '1';
 if (!in_array($step, ['1', '2', '3', 'done'], true)) $step = '1';
 
 // Soft hold: selections expire after HOLD_MINUTES.
@@ -45,7 +49,16 @@ if ($stay && !$room) { $stay = []; $_SESSION['booking']['stay'] = []; }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check()) { http_response_code(400); exit('Invalid request. Go back and try again.'); }
     $do = $_POST['do'] ?? '';
-    if ($do === 'pick') {
+    if ($do === 'extend') {
+        // Guests can always ask for more time. With JavaScript this keeps what they have typed on the page.
+        if ($stay) $_SESSION['booking']['started_at'] = time();
+        if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($stay ? ['left' => HOLD_MINUTES * 60] : ['expired' => true]);
+            exit;
+        }
+        header('Location: booking.php?step=' . ($stay ? (in_array($step, ['2', '3'], true) ? $step : 2) : 1)); exit;
+    } elseif ($do === 'pick') {
         $id = (int)($_POST['addon'] ?? 0);
         if ($id > 0) { $w = $_SESSION['wish'] ?? []; $w[] = $id; $_SESSION['wish'] = array_values(array_unique($w)); }
         header('Location: booking.php?step=' . ($stay ? 2 : 1)); exit;
@@ -57,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ((int)$r['total_units'] - booked_units($db, (int)$r['id'], $s['check_in'], $s['check_out']) < 1 || (int)$r['max_adults'] < $s['adults']) $err = 'That room is no longer available for those dates.';
         else {
             $s['room_id'] = (int)$r['id'];
-            $_SESSION['booking'] = ['stay' => $s, 'addons' => [], 'guest' => [], 'started_at' => time()];
+            $_SESSION['booking'] = ['stay' => $s, 'addons' => $_SESSION['booking']['addons'] ?? [], 'guest' => [], 'started_at' => time()];
             header('Location: booking.php?step=2'); exit;
         }
         $step = '1';
@@ -67,9 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($_SESSION['wish']);
         header('Location: booking.php?step=3'); exit;
     } elseif ($do === 'confirm' && $stay && $room) {
-        $g = ['first' => trim((string)($_POST['first'] ?? '')), 'last' => trim((string)($_POST['last'] ?? '')),
-              'email' => trim((string)($_POST['email'] ?? '')), 'phone' => trim((string)($_POST['phone'] ?? '')),
-              'arrive' => trim((string)($_POST['arrive'] ?? '')), 'req' => trim((string)($_POST['req'] ?? ''))];
+        $g = ['first' => field($_POST, 'first'), 'last' => field($_POST, 'last'), 'email' => field($_POST, 'email'),
+              'phone' => field($_POST, 'phone'), 'arrive' => field($_POST, 'arrive'), 'req' => field($_POST, 'req')];
         [$s, $e1] = parse_stay($stay);
         if ($e1) $err = $e1;
         elseif ($g['first'] === '' || $g['last'] === '' || mb_strlen($g['first']) > 80 || mb_strlen($g['last']) > 80) $err = 'Please enter your first and last name.';
@@ -80,13 +92,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $g['req'] = mb_substr(trim(($g['arrive'] !== '' ? 'Arrival: ' . mb_substr($g['arrive'], 0, 20) . '. ' : '') . $g['req']), 0, 1000);
             try {
                 $ref = create_booking($db, $room, $stay, $_SESSION['booking']['addons'] ?? [], $g);
-                $_SESSION['flash_ref'] = $ref;
+                $found = $db->prepare('SELECT id FROM bookings WHERE booking_ref = ?');
+                $found->execute([$ref]);
+                $bookingId = (int)$found->fetchColumn();
+                $_SESSION['last_booking'] = $bookingId;
+                $_SESSION['flash_mailed'] = mail_booking($db, $bookingId, 'confirmed');   // the booking is saved whether or not this succeeds
                 unset($_SESSION['booking']);
                 header('Location: booking.php?step=done'); exit;
-            } catch (RuntimeException $ex) { $err = $ex->getMessage(); }
-            catch (Throwable $ex) { error_log($ex->getMessage()); $err = 'Something went wrong. Please try again.'; }
+            } catch (PDOException $ex) { error_log('Booking could not be saved.'); $err = 'Something went wrong. Please try again.'; }   // first: it is also a RuntimeException, and its message must never reach the page
+            catch (RuntimeException $ex) { $err = $ex->getMessage(); }
+            catch (Throwable $ex) { error_log('Booking failed.'); $err = 'Something went wrong. Please try again.'; }
         }
         $step = '3';
+    } elseif ($do === 'confirm' && !$err && !empty($_SESSION['last_booking'])) {
+        // A double-click or a resubmit: the first click already booked, so show that booking.
+        header('Location: booking.php?step=done'); exit;
     }
 }
 
@@ -115,14 +135,29 @@ include __DIR__ . '/includes/header.php';
   <section>
   <?php if ($err): ?><p class="alert" role="alert"><?= e($err) ?></p><?php endif; ?>
 
+  <?php if (in_array($step, ['2', '3'], true)):
+      $holdEnds = ($_SESSION['booking']['started_at'] ?? time()) + HOLD_MINUTES * 60; ?>
+    <div class="hold" id="hold" data-left="<?= max(0, $holdEnds - time()) ?>" data-total="<?= HOLD_MINUTES * 60 ?>">
+      <i class="hold-bar" aria-hidden="true"></i>
+      <p><span id="hold-label">Your selection is saved until</span> <b id="hold-time"><?= e(date('H:i', $holdEnds)) ?></b></p>
+      <form method="post" action="booking.php?step=<?= e($step) ?>" id="hold-form">
+        <?= csrf_field() ?><input type="hidden" name="do" value="extend">
+        <button class="linkbtn" type="submit">Keep my selection</button>
+      </form>
+      <p class="sr-only" id="hold-status" role="status"></p>
+    </div>
+  <?php endif; ?>
+
   <?php if ($step === '1'):
-      $in = ($_POST ?: ($stay ?: $_GET)) + ['check_in' => $today, 'check_out' => $tomorrow, 'adults' => 2];
+      // Dates just submitted win over the saved stay, so "Show rooms" can change them after going back.
+      $in = ($_POST ?: (isset($_GET['check_in']) ? $_GET : ($stay ?: $_GET))) + ['check_in' => $today, 'check_out' => $tomorrow, 'adults' => 2];
       [$s, $e2] = parse_stay($in);
       $rooms = $s ? available_rooms($db, $s) : [];
       $vin = e($in['check_in'] ?? $today); $vout = e($in['check_out'] ?? $tomorrow); $vad = (int)($in['adults'] ?? 2); ?>
     <h1>Choose your stay</h1>
     <form method="get" action="booking.php" class="row">
       <input type="hidden" name="step" value="1">
+      <?php if (!empty($_GET['room'])): ?><input type="hidden" name="room" value="<?= (int)$_GET['room'] ?>"><?php endif; ?>
       <label class="fld">Check in<input type="date" name="check_in" min="<?= $today ?>" value="<?= $vin ?>" required></label>
       <label class="fld">Check out<input type="date" name="check_out" min="<?= $tomorrow ?>" value="<?= $vout ?>" required></label>
       <label class="fld">Adults<select name="adults"><?php for ($i = 1; $i <= 4; $i++): ?><option value="<?= $i ?>"<?= $i === $vad ? ' selected' : '' ?>><?= $i ?></option><?php endfor; ?></select></label>
@@ -138,7 +173,7 @@ include __DIR__ . '/includes/header.php';
         <p class="label" style="margin:1.5rem 0 1rem"><?= (int)$s['nights'] ?> night<?= $s['nights'] > 1 ? 's' : '' ?>, <?= count($rooms) ?> room type<?= count($rooms) > 1 ? 's' : '' ?> available</p>
         <?php foreach ($rooms as $r): ?>
           <label class="opt"><input type="radio" name="room" value="<?= (int)$r['id'] ?>" required<?= (int)($_GET['room'] ?? $stay['room_id'] ?? 0) === (int)$r['id'] ? ' checked' : '' ?>>
-            <div><h3><?= e($r['name']) ?> <?php if ($r['left'] <= 2): ?><span class="badge"><?= (int)$r['left'] ?> left</span><?php endif; ?></h3>
+            <div><h2><?= e($r['name']) ?> <?php if ($r['left'] <= 2): ?><span class="badge"><?= (int)$r['left'] ?> left</span><?php endif; ?></h2>
               <p><?= e($r['size_sqm']) ?> m², <?= e($r['bed_config']) ?>, <?= e($r['view']) ?></p>
               <p><span class="price"><?= money($r['base_price']) ?></span> a night, <?= money($r['base_price'] * $s['nights']) ?> for the stay</p></div></label>
         <?php endforeach; ?>
@@ -184,17 +219,30 @@ include __DIR__ . '/includes/header.php';
       </div>
       <label class="fld">Special requests<textarea name="req" rows="3" maxlength="900"><?= e($_POST['req'] ?? '') ?></textarea></label>
       <p class="alert">Payment is collected at the hotel. Free cancellation until <?= (int)FREE_CANCEL_HOURS ?> hours before check-in. No card details are taken here.</p>
-      <label class="fld" style="grid-auto-flow:column;justify-content:start;align-items:center;gap:.8rem;text-transform:none;letter-spacing:0;margin:0 0 1.5rem"><input type="checkbox" name="terms" value="1" required> I accept the booking terms and cancellation policy.</label>
+      <label class="fld" style="grid-auto-flow:column;justify-content:start;align-items:center;gap:.8rem;text-transform:none;letter-spacing:0;margin:0 0 1.5rem"><input type="checkbox" name="terms" value="1" required<?= !empty($_POST['terms']) ? ' checked' : '' ?>> I accept the booking terms and cancellation policy.</label>
       <p><a href="booking.php?step=2">Back</a></p>
       <button class="btn" type="submit">Confirm reservation</button>
     </form>
 
-  <?php else: $ref = $_SESSION['flash_ref'] ?? null; unset($_SESSION['flash_ref']); ?>
-    <?php if ($ref): ?>
-      <span class="label">Reservation confirmed</span>
-      <p class="ref"><?= e($ref) ?></p>
-      <p>Keep this booking ID. You'll need it, with your email, to view or change your stay.</p>
-      <p><a class="btn" href="index.php">Back to the lobby</a></p>
+  <?php else:
+      $mailed = !empty($_SESSION['flash_mailed']);
+      unset($_SESSION['flash_mailed']);
+      $done = !empty($_SESSION['last_booking']) ? load_booking($db, (int)$_SESSION['last_booking']) : null;   // still here after a reload, so the booking ID isn't lost ?>
+    <?php if ($done): ?>
+      <h1 class="label">Reservation confirmed</h1>
+      <p class="ref"><?= e($done['booking_ref']) ?></p>
+      <p><?php if ($mailed): ?>A confirmation is on its way to <b><?= e($done['email']) ?></b>. <?php endif; ?>Keep this booking ID. You'll need it, with your email, to view or change your stay.</p>
+      <dl class="kv">
+        <div><dt>Room</dt><dd><?= e($done['room_name']) ?></dd></div>
+        <div><dt>Check in</dt><dd><?= e(nice_date($done['check_in'])) ?>, from 15:00</dd></div>
+        <div><dt>Check out</dt><dd><?= e(nice_date($done['check_out'])) ?>, by 12:00</dd></div>
+        <div><dt>Guests</dt><dd><?= (int)$done['adults'] ?> adult<?= $done['adults'] > 1 ? 's' : '' ?></dd></div>
+        <div><dt>Total, payable at the hotel</dt><dd><?= money2($done['total']) ?></dd></div>
+      </dl>
+      <p class="acts">
+        <a class="btn" href="api/booking-ics.php?latest=1" download>Add to calendar</a>
+        <a class="btn" href="manage.php">Manage reservation</a>
+      </p>
     <?php else: ?>
       <h1>Nothing to show</h1><p><a class="btn" href="booking.php">Start a reservation</a></p>
     <?php endif; ?>

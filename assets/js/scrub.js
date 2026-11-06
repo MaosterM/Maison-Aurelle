@@ -1,3 +1,5 @@
+import './motion/pin.js';
+
 // Scroll-linked reveal: each [data-scrub] element gets --p (0 to 1) as it travels up the viewport.
 const els = [...document.querySelectorAll('[data-scrub]')];
 const bar = document.querySelector('.sprog');

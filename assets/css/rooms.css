@@ -1,25 +1,40 @@
 .rooms{padding:8rem clamp(1rem,4vw,3rem) 5rem}
 .rooms h1{max-width:none;margin:.5rem 0 1rem}
 .filters{display:flex;gap:.5rem;margin:2rem 0}
-.filters button{background:none;border:1px solid var(--charcoal-700);color:var(--taupe-300);padding:.6rem 1.4rem;font:600 .75rem var(--font-sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transform:skewX(var(--slant));transition:background var(--dur-ui) var(--ease-liquid),color var(--dur-micro)}
-.filters button[aria-pressed=true]{background:var(--champagne-500);color:var(--ink-950);border-color:var(--champagne-500)}
-.stack{display:flex;flex-direction:column;gap:.6rem;height:min(50rem,88vh)}
+.filters button{position:relative;isolation:isolate;min-height:44px;background:none;border:0;color:var(--taupe-300);padding:.6rem 1.4rem;font:600 .75rem var(--font-sans);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:color var(--dur-micro)}
+.filters button::before{content:"";position:absolute;inset:0;z-index:-1;border:1px solid var(--charcoal-700);transform:skewX(var(--slant));transition:background var(--dur-ui) var(--ease-liquid),border-color var(--dur-micro)}
+.filters button:hover,.filters button:focus-visible{color:var(--ivory-50)}
+.filters button:hover::before,.filters button:focus-visible::before{border-color:var(--champagne-500)}
+.filters button[aria-pressed=true]{color:var(--ink-950)}
+.filters button[aria-pressed=true]::before{background:var(--champagne-500);border-color:var(--champagne-500)}
+.stack{display:flex;flex-direction:column;gap:.6rem;height:max(43rem,min(50rem,88vh))}   /* an open panel needs this much room, even on short screens */
 .room{position:relative;overflow:hidden;flex:1;min-height:4.2rem;background:var(--charcoal-700);transition:flex var(--dur-reveal) var(--ease-snap)}
 .room[hidden]{display:none}
 .room img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform var(--dur-reveal) var(--ease-snap)}
-.room::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,11,12,.88),rgba(11,11,12,.25) 70%)}
+.room::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,11,12,.88),rgba(11,11,12,.25) 55%,rgba(11,11,12,.25) 66%,rgba(11,11,12,.88) 84%)}   /* shaded at both ends for the name and the price */
 .room header{position:absolute;z-index:1;left:1.5rem;right:1.5rem;top:1rem;display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
 .room h2{font-size:clamp(1.5rem,3vw,2.4rem);max-width:none}
-.price{color:var(--champagne-500);font-weight:600}
 .room .more{position:absolute;z-index:1;left:1.5rem;bottom:1.2rem;max-width:34rem;visibility:hidden;opacity:0;transform:translateY(14px);transition:opacity var(--dur-ui) var(--ease-snap),transform var(--dur-ui) var(--ease-snap),visibility 0s linear var(--dur-ui)}
 .room.is-open,.room:focus-within{flex:7}
 .room.is-open .more,.room:focus-within .more{visibility:visible;opacity:1;transform:none;transition-delay:.2s,.2s,0s}
 .spec{display:flex;flex-wrap:wrap;gap:1.4rem;margin:1rem 0}
 .spec dt{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--taupe-300)}
 .spec dd{margin:0}
-.chips{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:.5rem}
-.chips li{padding:.2rem .8rem;border:1px solid var(--champagne-700);font-size:.8rem;color:var(--champagne-300)}
-.room .more .btn{margin-top:1rem}
+.room-acts{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem 1.2rem;margin-top:1rem}
+.flip-btn{min-height:44px;background:none;border:0;color:var(--champagne-300);font:inherit;font-size:.9rem;text-decoration:underline;cursor:pointer}
+.flip-btn:hover,.flip-btn:focus-visible{color:var(--ivory-50)}
+
+/* flip: details on the front, what's included on the back. The hidden side is also hidden from assistive technology. */
+.flip{perspective:1200px}
+.flip-inner{display:grid;transform-style:preserve-3d;transition:transform var(--dur-wipe) var(--ease-snap)}
+.flip-face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:visibility 0s linear calc(var(--dur-wipe) / 2)}
+.flip-back{transform:rotateY(180deg);visibility:hidden}
+.flip.is-flipped .flip-inner{transform:rotateY(180deg)}
+.flip.is-flipped .flip-front{visibility:hidden}
+.flip.is-flipped .flip-back{visibility:visible}
+.flip-title{margin-bottom:.8rem;font:300 1.4rem var(--font-serif)}
+html:not(.js) .flip-face{grid-area:auto}
+html:not(.js) .flip-back{transform:none;visibility:visible;margin-top:1rem}
 @media (hover:hover) and (min-width:761px){
   .room:hover{flex:7}
   .room:hover img{transform:scale(1.04)}
@@ -33,4 +48,12 @@
   .room.is-open{min-height:32rem}
   .room header{flex-direction:column;gap:.2rem}
   .room .more{right:1.5rem}
+  .room::after{background:linear-gradient(180deg,rgba(11,11,12,.72),rgba(11,11,12,.8) 40%)}
+  .room:focus-within:not(.is-open) .more{visibility:hidden;opacity:0}   /* focus does not grow a panel here, so its details must not spill */
+  .room:focus-visible{outline-offset:-3px}
 }
+/* no JavaScript: nothing can toggle a panel on touch, so show every room in full */
+html:not(.js) .filters{display:none}
+html:not(.js) .stack{height:auto}
+html:not(.js) .room{flex:none;min-height:32rem}
+html:not(.js) .room .more{right:1.5rem;visibility:visible;opacity:1;transform:none}

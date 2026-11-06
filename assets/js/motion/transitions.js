@@ -18,10 +18,16 @@ if (sx) {
     root.classList.remove('sx-pending');
     void sx.offsetWidth;
     try { sessionStorage.removeItem('sx'); } catch (e) {}
-    requestAnimationFrame(() => {
+    // Frames do not run in a background tab, so a timer guarantees the cover always lifts.
+    let lifted = false;
+    const lift = () => {
+      if (lifted) return;
+      lifted = true;
       sx.classList.replace('is-cover', 'is-out');
       setTimeout(reset, total() + 200);
-    });
+    };
+    requestAnimationFrame(lift);
+    setTimeout(lift, 250);
   }
 
   // Back/forward cache restores the old DOM; clear any overlay state.

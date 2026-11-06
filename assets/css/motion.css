@@ -4,7 +4,9 @@
 .sx i:nth-child(1){background:var(--champagne-500);--d:0ms}
 .sx i:nth-child(2){background:var(--taupe-400);--d:var(--stagger)}
 .sx i:nth-child(3){background:var(--charcoal-900);--d:calc(var(--stagger)*2)}
-.sx b{font:300 3rem var(--font-serif);color:var(--champagne-500);transform:skewX(calc(var(--slant)*-1));animation:pulse .9s ease-in-out infinite alternate}
+.sx b{font:300 3rem var(--font-serif);color:var(--champagne-500);transform:skewX(calc(var(--slant)*-1))}
+.sx.is-cover b,.sx-pending .sx b{animation:pulse .9s ease-in-out infinite alternate}   /* only while the wipe is showing */
+:root[data-motion=calm] .sx b{animation:none}
 @keyframes pulse{from{opacity:.4}}
 .sx.is-cover i{transform:translateX(0) skewX(var(--slant))}
 .sx.is-out i{transform:translateX(125%) skewX(var(--slant))}
@@ -13,20 +15,33 @@
 .sx.reset i{transition:none}
 .sx-pending .sx i{transform:translateX(0) skewX(var(--slant));transition:none}
 
+/* Golden Hour loader: first page of a visit only. CSS alone runs it, so it can never get stuck waiting for a script. */
+.gh{display:none}
+.gh-on .gh{position:fixed;inset:0;z-index:9500;display:grid;justify-items:center;align-content:center;gap:0;background:radial-gradient(70% 55% at 50% 58%,rgba(210,182,126,.22),transparent 70%),var(--ink-950);pointer-events:none;animation:gh-out .6s var(--ease-wipe) 1.05s forwards}
+.gh-sky{position:relative;width:min(16rem,60vw);aspect-ratio:2;overflow:hidden}
+.gh-sun{position:absolute;inset:0 0 -100%;border-radius:50%;background:var(--gold-sheen);animation:gh-rise .95s var(--ease-snap) .1s backwards}
+.gh-line{display:block;width:min(26rem,86vw);height:1px;background:var(--champagne-500);transform-origin:center;animation:gh-draw .7s var(--ease-snap) backwards}
+.gh b{margin-top:1.1rem;font:300 1.6rem Georgia,serif;font-family:var(--font-serif);letter-spacing:.08em;color:var(--ivory-50);animation:gh-word .6s var(--ease-snap) .4s backwards}
+@keyframes gh-rise{from{transform:translateY(100%)}}
+@keyframes gh-draw{from{transform:scaleX(0)}}
+@keyframes gh-word{from{opacity:0;transform:translateY(.6rem)}}
+@keyframes gh-out{from{clip-path:polygon(0 0,112% 0,100% 100%,-12% 100%)}to{clip-path:polygon(112% 0,112% 0,100% 100%,100% 100%);visibility:hidden}}
+
 /* kinetic type: chars rise from a mask with a small rotation */
 [data-split] .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.14em}
 [data-split] .c{display:inline-block;transform:translateY(110%) rotate(8deg);transform-origin:left bottom;transition:transform var(--dur-reveal) var(--ease-pop);transition-delay:calc(var(--i)*18ms + var(--base,0ms))}
 [data-split].in .c{transform:none}
 
 /* cut-in reveal: slanted clip-path sweep */
-.reveal{clip-path:polygon(0 0,0 0,-12% 100%,-12% 100%);transition:clip-path var(--dur-reveal) var(--ease-snap) var(--base,0ms)}
-.reveal.in{clip-path:polygon(0 0,112% 0,100% 100%,-12% 100%)}
+html.js .reveal{clip-path:polygon(0 0,0 0,-12% 100%,-12% 100%);transition:clip-path var(--dur-reveal) var(--ease-snap) var(--base,0ms)}
+html.js .reveal.in{clip-path:polygon(0 0,112% 0,100% 100%,-12% 100%)}
 
 @media (prefers-reduced-motion:reduce){
-  .sx,.sx-pending .sx{display:none}
-  *,*::before,*::after{animation:none!important;transition-duration:.2s!important;transition-delay:0ms!important}
+  html{scroll-behavior:auto}
+  .gh,.gh-on .gh,.sx,.sx-pending .sx{display:none}
+  *,*::before,*::after{animation:none!important;transition:none!important}   /* changes happen at once; a panel must be visible the moment it takes focus */
   [data-split] .c{transform:none}
-  .reveal{clip-path:none}
+  html.js .reveal{clip-path:none}
 }
 
 /* header actions + fullscreen menu (hidden without JS; inline nav is the fallback) */
@@ -36,13 +51,20 @@
 .menu-btn{display:none}
 html.js .menu-btn{display:inline-block}
 html.js .nav{display:none}
-.menu{display:none;position:fixed;inset:0;z-index:200;grid-template-columns:1.3fr 1fr;gap:2rem;align-content:center;align-items:center;padding:6rem clamp(1rem,6vw,5rem) 3rem;background:var(--ink-950);clip-path:polygon(0 0,0 0,-12% 100%,-12% 100%);visibility:hidden;transition:clip-path var(--dur-wipe) var(--ease-wipe),visibility 0s linear var(--dur-wipe)}
+@media (max-width:480px){
+  html.js .site-header{flex-wrap:nowrap}
+  .logo{font-size:1.3rem;letter-spacing:.03em;white-space:nowrap}
+  .hdr-actions{gap:.4rem}
+  .hdr-actions .btn--sm,.hdr-actions .menu-btn{padding:.7rem;font-size:.68rem;letter-spacing:.1em}
+}
+@media (max-width:760px){html:not(.js) .site-header{position:relative}}   /* the wrapped no-JS nav is too tall to stay fixed */
+.menu{display:none;position:fixed;inset:0;z-index:200;overflow-y:auto;grid-template-columns:1.3fr 1fr;gap:2rem;align-content:safe center;align-items:center;padding:6rem clamp(1rem,6vw,5rem) 3rem;background:var(--ink-950);clip-path:polygon(0 0,0 0,-12% 100%,-12% 100%);visibility:hidden;transition:clip-path var(--dur-wipe) var(--ease-wipe),visibility 0s linear var(--dur-wipe)}
 html.js .menu{display:grid}
 .menu.is-open{clip-path:polygon(0 0,112% 0,100% 100%,-12% 100%);visibility:visible;transition-delay:0s}
 html.menu-open{overflow:hidden}
 .menu-close{position:absolute;top:calc(1rem + env(safe-area-inset-top,0px));right:clamp(1rem,4vw,3rem)}
 .menu-list{list-style:none;padding:0;display:grid;gap:.2rem}
-.menu-list a{position:relative;isolation:isolate;display:flex;align-items:baseline;gap:1.2rem;padding:.3rem 1.2rem;font:300 clamp(2.4rem,7vw,5.5rem)/1.1 var(--font-serif);transition:transform var(--dur-ui) var(--ease-pop),color var(--dur-micro),opacity var(--dur-ui)}
+.menu-list a{position:relative;isolation:isolate;display:flex;align-items:baseline;gap:1.2rem;padding:.3rem 1.2rem .55rem;font:300 clamp(2.4rem,7vw,5.5rem)/1.1 var(--font-serif);transition:transform var(--dur-ui) var(--ease-pop),color var(--dur-micro),opacity var(--dur-ui)}
 .menu-list a::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--champagne-500);transform:skewX(var(--slant)) scaleX(0);transform-origin:left;transition:transform var(--dur-ui) var(--ease-pop)}
 .menu-list .num{font:600 .8rem var(--font-sans);letter-spacing:.18em;color:var(--champagne-500)}
 .menu-list:hover a:not(:hover){opacity:.35}

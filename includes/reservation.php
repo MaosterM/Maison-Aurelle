@@ -39,14 +39,15 @@ function free_until(array $b): int { return strtotime($b['check_in'] . ' 15:00')
 function cancel_fee(array $b): float {
     return time() <= free_until($b) ? 0.0 : round((float)$b['subtotal'] / max(1, (int)$b['nights']), 2);   // late cancel: first night
 }
-function cancel_booking(PDO $db, array $b): float {
-    $fee = cancel_fee($b);
+/** $fee overrides the normal fee, for staff waiving it. $by goes in the booking's history. */
+function cancel_booking(PDO $db, array $b, ?float $fee = null, string $by = 'guest'): float {
+    $fee ??= cancel_fee($b);
     $db->beginTransaction();
     try {
         $u = $db->prepare("UPDATE bookings SET status = 'cancelled', cancelled_at = NOW(), cancellation_fee = ? WHERE id = ? AND status IN ('pending','confirmed')");
         $u->execute([$fee, $b['id']]);
         if ($u->rowCount() === 1) {
-            $db->prepare("INSERT INTO booking_events (booking_id, event_type, payload) VALUES (?, 'cancelled', ?)")->execute([$b['id'], json_encode(['fee' => $fee])]);
+            $db->prepare("INSERT INTO booking_events (booking_id, event_type, payload) VALUES (?, 'cancelled', ?)")->execute([$b['id'], json_encode(['fee' => $fee, 'by' => $by])]);
         }
         $db->commit();
     } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
@@ -59,7 +60,7 @@ function plan_change(PDO $db, array $b, array $s): array {
     if ((int)$room['total_units'] - booked_units($db, (int)$room['id'], $s['check_in'], $s['check_out'], (int)$b['id']) < 1) return [null, 'No room is free for those dates.'];
     return [quote($db, $room, $s, addon_ids($db, (int)$b['id'])), null];
 }
-function apply_dates(PDO $db, array $b, array $s): array {
+function apply_dates(PDO $db, array $b, array $s, string $by = 'guest'): array {
     $room = get_room($db, (int)$b['room_type_id']);
     if (!$room) throw new RuntimeException('This room type can no longer be changed online.');
     $db->beginTransaction();
@@ -75,10 +76,15 @@ function apply_dates(PDO $db, array $b, array $s): array {
         $ins = $db->prepare('INSERT INTO booking_addons (booking_id, addon_id, quantity, unit_price, line_total) VALUES (?,?,?,?,?)');
         foreach ($q['addons'] as $a) $ins->execute([$b['id'], $a['id'], $a['qty'], $a['unit'], $a['amount']]);
         $db->prepare("INSERT INTO booking_events (booking_id, event_type, payload) VALUES (?, 'modified', ?)")
-           ->execute([$b['id'], json_encode(['from' => [$b['check_in'], $b['check_out']], 'to' => [$s['check_in'], $s['check_out']], 'total' => $q['total']])]);
+           ->execute([$b['id'], json_encode(['from' => [$b['check_in'], $b['check_out']], 'to' => [$s['check_in'], $s['check_out']], 'total' => $q['total'], 'by' => $by])]);
         $db->commit();
         return $q;
     } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+}
+/** An inquiry from the Contact page, not tied to a booking. */
+function submit_contact_inquiry(PDO $db, string $name, string $email, string $topic, string $msg): void {
+    $db->prepare('INSERT INTO inquiries (booking_id, name, email, topic, message) VALUES (NULL,?,?,?,?)')
+       ->execute([$name, $email, $topic, $msg]);
 }
 function submit_inquiry(PDO $db, array $b, string $topic, string $msg): void {
     $db->prepare('INSERT INTO inquiries (booking_id, name, email, topic, message) VALUES (?,?,?,?,?)')

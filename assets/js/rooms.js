@@ -7,12 +7,35 @@ if (list) {
 
   // Deep link from the home carousel: rooms.php#slug
   const h = location.hash && document.getElementById(location.hash.slice(1));
-  if (h && list.contains(h)) { open(h); setTimeout(() => h.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400); }
+  if (h && list.contains(h)) { open(h); setTimeout(() => h.scrollIntoView({ behavior: calm.matches ? 'auto' : 'smooth', block: 'center' }), 400); }
 
   // Touch and small screens: tap a panel to open or close it
   list.addEventListener('click', e => {
     const i = e.target.closest('.room');
-    if (touch.matches && i && !e.target.closest('a')) open(i.classList.contains('is-open') ? null : i);
+    if (!touch.matches || !i || e.target.closest('a,button')) return;
+    const closing = i.classList.contains('is-open');
+    open(closing ? null : i);
+    if (closing && e.detail) i.blur();   // a tap leaves focus behind, which would hold the panel open on tablets
+  });
+
+  // Keyboard equivalent of the tap, for small screens where focus alone does not expand a panel
+  list.addEventListener('keydown', e => {
+    if (!touch.matches || !e.target.matches('.room') || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault();
+    open(e.target.classList.contains('is-open') ? null : e.target);
+  });
+
+  // Card flip: the button stays in place, so keyboard focus never moves when the card turns.
+  items.forEach(room => {
+    const btn = room.querySelector('.flip-btn');
+    const flip = room.querySelector('.flip');
+    if (!btn || !flip) return;
+    btn.hidden = false;
+    btn.addEventListener('click', () => {
+      const on = flip.classList.toggle('is-flipped');
+      btn.setAttribute('aria-pressed', on);
+      btn.textContent = on ? 'Room details' : "What's included";
+    });
   });
 
   // Filter chips with FLIP: measure, change layout, animate from the old position

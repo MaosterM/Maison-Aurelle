@@ -8,8 +8,8 @@ function valid_date(string $d): ?DateTimeImmutable {
 
 /** Validate dates and guests. Returns [stay|null, error|null]. */
 function parse_stay(array $in): array {
-    $a = valid_date((string)($in['check_in'] ?? ''));
-    $b = valid_date((string)($in['check_out'] ?? ''));
+    $a = is_string($in['check_in'] ?? null) ? valid_date($in['check_in']) : null;
+    $b = is_string($in['check_out'] ?? null) ? valid_date($in['check_out']) : null;
     $adults = (int)($in['adults'] ?? 2);
     if (!$a || !$b) return [null, 'Please choose valid dates.'];
     if ($a < new DateTimeImmutable('today')) return [null, 'Check-in cannot be in the past.'];

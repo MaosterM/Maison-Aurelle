@@ -1,0 +1,82 @@
+.ct-hero{display:grid;justify-items:start;gap:1.5rem;padding:9rem clamp(1rem,4vw,3rem) clamp(3rem,6vw,5rem)}
+
+/* contact cards: a gold line sweeps in on hover or keyboard focus */
+.ct-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,19rem),1fr));gap:1px;margin:0 clamp(1rem,4vw,3rem);background:var(--charcoal-700);border:1px solid var(--charcoal-700)}
+.cc{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:.7rem;padding:2rem 1.5rem;background:var(--ink-950)}
+.cc::before{content:"";position:absolute;inset:0 -1rem auto;height:3px;background:var(--champagne-500);transform:skewX(var(--slant)) scaleX(0);transform-origin:left;transition:transform var(--dur-ui) var(--ease-snap)}
+.cc:hover::before,.cc:focus-within::before{transform:skewX(var(--slant)) scaleX(1)}
+.cc-value{font:300 clamp(1.5rem,2.2vw,2rem)/1.2 var(--font-serif);overflow-wrap:anywhere}
+.cc-note{color:var(--taupe-300);font-size:.9rem}
+.cc-acts{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:auto;padding-top:1rem}
+.cc-acts .btn--sm,.copy{padding:.9rem 1.2rem;line-height:1}
+.copy{min-width:6rem;background:none;border:1px solid var(--charcoal-700);color:var(--ivory-50);font:600 .75rem var(--font-sans);letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:border-color var(--dur-micro),color var(--dur-micro)}
+.copy:hover,.copy:focus-visible,.copy.is-done{border-color:var(--champagne-500);color:var(--champagne-300)}
+html:not(.js) .copy{display:none}
+
+/* map: desaturated tiles, gold pin with a pulsing ring */
+.ct-map{padding:clamp(4rem,10vw,8rem) clamp(1rem,4vw,3rem);scroll-margin-top:3rem}
+.ct-map-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:1.5rem;margin-bottom:2rem}
+.map{position:relative;z-index:0;height:clamp(22rem,60vh,36rem);background:var(--charcoal-800)}
+.map.leaflet-container{background:var(--charcoal-800);font:400 .85rem var(--font-sans)}
+.map .leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.85) contrast(.9)}
+.map-fallback{position:absolute;inset:0;display:grid;place-content:center;gap:.5rem;padding:1.5rem;text-align:center}
+.map-fallback a{color:var(--champagne-300);text-decoration:underline}
+.map .leaflet-bar{border:1px solid var(--champagne-700);border-radius:0;box-shadow:none}
+.map .leaflet-bar a{width:44px;height:44px;line-height:44px;background:var(--charcoal-900);color:var(--ivory-50);border-color:var(--charcoal-700);border-radius:0}
+.map .leaflet-bar a:hover,.map .leaflet-bar a:focus-visible{background:var(--champagne-500);color:var(--ink-950)}
+.map .leaflet-bar a.leaflet-disabled{background:var(--charcoal-800);color:var(--taupe-400)}
+.map .leaflet-control-attribution{background:rgba(11,11,12,.8);color:var(--taupe-300);padding:.15rem .5rem}
+.map .leaflet-control-attribution a{color:var(--champagne-300)}
+.map .leaflet-popup-content-wrapper,.map .leaflet-popup-tip{background:var(--ink-950);color:var(--ivory-50);border-radius:0;box-shadow:0 0 0 1px var(--champagne-700)}
+.map .leaflet-popup-content{margin:1rem 1.2rem;font:400 .9rem/1.4 var(--font-sans)}
+.map .leaflet-popup-content b{display:block;font:300 1.4rem var(--font-serif);color:var(--champagne-300)}
+.map .leaflet-popup-close-button{width:32px;height:32px;line-height:32px;color:var(--ivory-50)}
+.pin{position:relative}
+.pin b{position:absolute;inset:4px;background:var(--gold-sheen);box-shadow:0 0 0 2px var(--ink-950);transform:rotate(45deg)}
+.pin i{position:absolute;inset:0;border:1px solid var(--champagne-500);border-radius:50%;animation:ping 2.4s var(--ease-snap) infinite}
+.pin i+i{animation-delay:1.2s}
+.pin:focus-visible{outline-offset:8px}
+@keyframes ping{from{transform:scale(.6);opacity:.9}to{transform:scale(3.2);opacity:0}}
+:root[data-motion=calm] .pin i{animation:none;transform:scale(1.6);opacity:.6}
+
+/* inquiry form on the light section: gold only as lines, never as text */
+.ct-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:clamp(2rem,6vw,6rem);scroll-margin-top:4rem}
+.ct-form .label,.ct-faq .label{display:block;margin-bottom:.9rem}
+.ct-form .row{margin-top:0}
+.ct-field{margin:0 0 1.2rem}
+.ct-form .fld{color:var(--graphite-500)}
+.ct-form .fld input,.ct-form .fld select,.ct-form .fld textarea{width:100%;min-width:0;color:var(--charcoal-900);border-bottom-color:var(--champagne-700);color-scheme:light}
+.ct-form .fld :is(input,select,textarea)[aria-invalid=true]{border-bottom:2px solid var(--charcoal-900)}
+.ct-form .alert{background:var(--cream-100);border-left-color:var(--charcoal-900);margin-top:0}
+.err{display:block;margin-top:.35rem;color:var(--charcoal-900);font-size:.85rem;font-weight:600}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* success: the panel cuts in on the slant, then the check draws itself */
+.sent{display:grid;justify-items:start;gap:1rem;padding:clamp(1.5rem,4vw,3rem);background:var(--ink-950);color:var(--ivory-50);animation:cutin var(--dur-reveal) var(--ease-snap) both}
+.sent:focus{outline:none}
+.sent p{margin:0;color:var(--taupe-300)}
+.sent h3{font-size:clamp(1.8rem,3vw,2.6rem);animation:rise var(--dur-reveal) var(--ease-snap) .25s backwards}
+.sent svg{fill:none;stroke:var(--champagne-500);stroke-width:1.5}
+.sent svg circle{stroke-dasharray:139;animation:draw var(--dur-reveal) var(--ease-liquid) .2s backwards}
+.sent svg path{stroke-dasharray:32;stroke-width:2;animation:drawcheck var(--dur-ui) var(--ease-snap) .75s backwards}
+.sent .btn{margin-top:.5rem;border-color:var(--champagne-500);color:var(--champagne-300)}
+.sent .btn:hover,.sent .btn:focus-visible{color:var(--ink-950)}
+@keyframes cutin{from{clip-path:polygon(0 0,0 0,-12% 100%,-12% 100%)}to{clip-path:polygon(0 0,112% 0,100% 100%,-12% 100%)}}
+@keyframes draw{from{stroke-dashoffset:139}}
+@keyframes drawcheck{from{stroke-dashoffset:32}}
+
+/* FAQ: native details, with the height animated by contact.js */
+.faq{max-width:60rem;margin-top:2.5rem;border-top:1px solid var(--charcoal-700)}
+.faq details{overflow:hidden;border-bottom:1px solid var(--charcoal-700)}
+.faq summary{display:flex;justify-content:space-between;align-items:center;gap:1.5rem;padding:1.3rem .3rem;font:300 clamp(1.3rem,2vw,1.7rem)/1.25 var(--font-serif);list-style:none;cursor:pointer;transition:color var(--dur-micro),transform var(--dur-ui) var(--ease-pop)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:hover,.faq summary:focus-visible{color:var(--champagne-300);transform:translateX(6px)}
+.faq summary:focus-visible{outline-offset:-3px}
+.faq .ic{position:relative;flex:none;width:1rem;height:1rem;transition:transform var(--dur-ui) var(--ease-pop)}
+.faq .ic::before,.faq .ic::after{content:"";position:absolute;background:var(--champagne-500)}
+.faq .ic::before{left:0;right:0;top:calc(50% - .5px);height:1px}
+.faq .ic::after{top:0;bottom:0;left:calc(50% - .5px);width:1px}
+.faq details[open] .ic{transform:rotate(135deg)}
+.section .faq p{margin:0;padding:0 .3rem 1.5rem;color:var(--taupe-300)}
+
+@media (max-width:900px){.ct-form{grid-template-columns:minmax(0,1fr)}}

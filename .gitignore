@@ -1,4 +1,6 @@
 .env
+storage/
+assets/img/originals/
 .DS_Store
 Thumbs.db
 node_modules/

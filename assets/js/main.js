@@ -1,8 +1,10 @@
 import './motion/transitions.js';
 import './motion/menu.js';
 import './motion/flex.js';
+import './motion/parallax.js';
 
 const root = document.documentElement;
+const loaderDelay = root.classList.contains('gh-on') ? 1000 : 0;   // let the Golden Hour loader lift first
 
 // Kinetic typography: [data-split] -> words -> characters (aria-label keeps the heading readable)
 const split = el => {
@@ -36,13 +38,18 @@ const split = el => {
 document.querySelectorAll('[data-split]').forEach(split);
 
 // Reveal on first view
-const io = new IntersectionObserver(es => es.forEach(e => {
-  if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-}), { threshold: .15 });
-document.querySelectorAll('[data-split],.reveal').forEach(el => {
-  el.style.setProperty('--base', (el.dataset.delay || 0) + 'ms');
-  io.observe(el);
-});
+const watch = (selector, options) => {
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), options);
+  document.querySelectorAll(selector).forEach(el => {
+    el.style.setProperty('--base', (+el.dataset.delay || 0) + loaderDelay + 'ms');
+    io.observe(el);
+  });
+};
+watch('[data-split]', { threshold: .15 });
+// A .reveal starts fully clipped, so Chrome reports its ratio as 0 forever: trigger on position, not on a ratio.
+watch('.reveal', { rootMargin: '0px 0px -15% 0px' });
 
 // Motion toggle: signature <-> calm (persisted)
 const t = document.getElementById('motion-toggle');
@@ -53,16 +60,20 @@ if (t) {
     root.dataset.motion = root.dataset.motion === 'calm' ? 'signature' : 'calm';
     try { localStorage.setItem('motion', root.dataset.motion); } catch (e) {}
     sync();
+    document.dispatchEvent(new Event('motion-change'));
   });
 }
 
 // Check-out always follows check-in
-const ci = document.querySelector('[name=check_in]'), co = document.querySelector('[name=check_out]');
-if (ci && co) ci.addEventListener('change', () => {
-  const d = new Date(ci.value);
-  if (isNaN(d)) return;
-  d.setUTCDate(d.getUTCDate() + 1);
-  const m = d.toISOString().slice(0, 10);
-  co.min = m;
-  if (!co.value || co.value < m) co.value = m;
-});
+const ci = document.querySelector('input[type=date][name=check_in]'), co = document.querySelector('input[type=date][name=check_out]');
+if (ci && co) {
+  ci.addEventListener('change', () => {
+    const d = new Date(ci.value);
+    if (isNaN(d)) return;
+    d.setUTCDate(d.getUTCDate() + 1);
+    const m = d.toISOString().slice(0, 10);
+    co.min = m;
+    if (!co.value || co.value < m) co.value = m;
+  });
+  import('./datepicker.js');   // only pages with a date form load the picker; without it the native inputs remain
+}
